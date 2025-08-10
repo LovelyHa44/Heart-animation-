@@ -1,109 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Heart Animation</title>
-<style>
+  <meta charset="UTF-8">
+  <title>Heart Animation - Dark Mode</title>
+  <style>
     body {
-        margin: 0;
-        background: black;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        flex-direction: column;
+      background: black;
+      margin: 0;
+      overflow: hidden;
     }
-
-    .container {
-        position: relative;
-        width: 200px;
-        height: 200px;
+    canvas {
+      display: block;
     }
-
-    /* Lines clipped inside heart */
-    .lines {
-        position: absolute;
-        inset: 0;
-        overflow: hidden;
-        -webkit-mask: url(#heartMask);
-        -webkit-mask-repeat: no-repeat;
-        -webkit-mask-position: center;
-        -webkit-mask-size: contain;
-        mask: url(#heartMask);
-        mask-repeat: no-repeat;
-        mask-position: center;
-        mask-size: contain;
-    }
-
-    .line {
-        position: absolute;
-        width: 100%;
-        height: 2px;
-        background: rgba(255, 0, 255, 0.6);
-        filter: drop-shadow(0 0 5px #ff00ff);
-        animation: moveLine 2s linear infinite;
-    }
-
-    @keyframes moveLine {
-        0% { transform: rotate(var(--angle)) translateX(-100%); }
-        100% { transform: rotate(var(--angle)) translateX(100%); }
-    }
-
-    /* Heart outline */
-    .heart {
-        fill: none;
-        stroke: #ff00ff;
-        stroke-width: 8;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        filter: drop-shadow(0 0 10px #ff00ff) drop-shadow(0 0 20px #ff00ff);
-    }
-
-    /* Glowing text inside heart */
-    .center-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #ff00ff;
-        font-size: 18px;
-        font-family: Arial, sans-serif;
-        font-weight: bold;
-        text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff;
-        white-space: nowrap;
-    }
-</style>
+  </style>
 </head>
 <body>
+  <canvas id="c"></canvas>
 
-<div class="container">
-    <!-- Moving Lines -->
-    <div class="lines">
-        <div class="line" style="top: 10%; --angle: 0deg;"></div>
-        <div class="line" style="top: 30%; --angle: 0deg;"></div>
-        <div class="line" style="top: 50%; --angle: 0deg;"></div>
-        <div class="line" style="top: 70%; --angle: 0deg;"></div>
-        <div class="line" style="top: 90%; --angle: 0deg;"></div>
-    </div>
+  <script>
+    var c = document.getElementById('c');
+    var a = c.getContext('2d');
 
-    <!-- SVG Heart Shape -->
-    <svg viewBox="0 0 200 200" style="position:absolute; inset:0;">
-        <path class="heart" d="M100 180 L40 120 C10 90 10 40 50 30 C70 25 90 40 100 60 C110 40 130 25 150 30 C190 40 190 90 160 120 L100 180 Z"/>
-    </svg>
+    let e = []; // trails
+    let h = []; // heart path
+    let O = c.width = innerWidth;
+    let Q = c.height = innerHeight;
 
-    <!-- Center Text -->
-    <div class="center-text">This 💖 for you</div>
+    let v = 32; // number of trails and nodes
+    let M = Math;
+    let R = M.random;
+    let C = M.cos;
+    let Y = 6.3;
 
-    <!-- Heart Mask Definition -->
-    <svg width="0" height="0">
-        <defs>
-            <mask id="heartMask" x="0" y="0" width="200" height="200">
-                <path fill="white" d="M100 180 L40 120 C10 90 10 40 50 30 C70 25 90 40 100 60 C110 40 130 25 150 30 C190 40 190 90 160 120 L100 180 Z"/>
-            </mask>
-        </defs>
-    </svg>
-</div>
+    // Create heart path
+    for (let i = 0; i < Y; i += 0.2) {
+      h.push([
+        O / 2 + 180 * M.pow(M.sin(i), 3),
+        Q / 2 + 10 * (-(15 * C(i) - 5 * C(2 * i) - 2 * C(3 * i) - C(4 * i)))
+      ]);
+    }
 
+    // Create trails
+    for (let i = 0; i < v; i++) {
+      let x = R() * O;
+      let y = R() * Q;
+
+      // Darker color palette (deep red to purple)
+      let H = i / v * 40 + 300; // hue (300~340 = purple-red tones)
+      let S = R() * 20 + 50; // lower saturation for dark tones
+      let B = R() * 20 + 10; // brightness low
+
+      let f = [];
+      for (let k = 0; k < v; k++) {
+        f[k] = {
+          x: x,
+          y: y,
+          X: 0,
+          Y: 0,
+          R: (1 - k / v) + 1,
+          S: R() + 0.5,
+          q: ~~(R() * v),
+          D: i % 2 * 2 - 1,
+          F: R() * 0.15 + 0.6,
+          f: `hsla(${~~H},${~~S}%,${~~B}%,0.15)`
+        };
+      }
+      e.push(f);
+    }
+
+    function render(p) {
+      a.fillStyle = p.f;
+      a.beginPath();
+      a.arc(p.x, p.y, p.R, 0, Y, true);
+      a.closePath();
+      a.fill();
+    }
+
+    function loop() {
+      a.fillStyle = "rgba(0,0,0,0.25)"; // darker fade
+      a.fillRect(0, 0, O, Q);
+
+      for (let i = 0; i < v; i++) {
+        let fTrail = e[i];
+        let u = fTrail[0];
+        let qNode = h[u.q];
+        let D = u.x - qNode[0];
+        let E = u.y - qNode[1];
+        let G = M.sqrt(D * D + E * E);
+
+        if (G < 10) {
+          if (R() > 0.95) {
+            u.q = ~~(R() * v);
+          } else {
+            if (R() > 0.99) u.D *= -1;
+            u.q += u.D;
+            u.q %= v;
+            if (u.q < 0) u.q += v;
+          }
+        }
+
+        u.X += (-D / G) * u.S;
+        u.Y += (-E / G) * u.S;
+        u.x += u.X;
+        u.y += u.Y;
+        render(u);
+        u.X *= u.F;
+        u.Y *= u.F;
+
+        for (let k = 0; k < v - 1; k++) {
+          let T = fTrail[k];
+          let N = fTrail[k + 1];
+          N.x -= (N.x - T.x) * 0.7;
+          N.y -= (N.y - T.y) * 0.7;
+          render(N);
+        }
+      }
+    }
+
+    (function animate() {
+      requestAnimationFrame(animate);
+      loop();
+    })();
+  </script>
 </body>
 </html>
